@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, jsonify, render_template, request, redirect, url_for
 import mysql.connector
 
 app = Flask(__name__)
@@ -44,46 +44,114 @@ def submit_formulario():
         return "Ocorreu um erro ao inserir os dados.", 500
 
 
-@app.route('/usuario', methods=['PUT'])
-def submit_formulario():
-    # Capture form data with proper validation
-    id = request.form['id']
-    nome = request.form['nome']  # ... validate and handle errors
-    email = request.form['email']  # ... validate and handle errors
-    idade = request.form['idade']  # ... validate and handle errors
-    genero = request.form['genero']  # ... validate and handle errors
-    mensagem = request.form['mensagem']  # ... validate and handle errors
+@app.route('/usuario/<int:usuario_id>', methods=['PUT'])
+def atualizar_usuario(usuario_id):
+    # Obter os dados do formulário
+    dados = request.json  # Assumindo que os dados são enviados em formato JSON
 
-    # Ensure data integrity before database interaction
+    # Validar os dados
+    # ... (implementar a validação aqui)
 
+    # Construir a consulta SQL
+    sql = "UPDATE usuarios SET nome=%s, email=%s, idade=%s WHERE id=%s"
+    valores = (dados['nome'], dados['email'], dados['idade'], usuario_id)
+
+    # Conectar ao banco de dados e executar a consulta
     try:
-        # Connect to the database using a context manager (recommended)
         with mysql.connector.connect(
-            host=db_host, user=db_user, password=db_password, database=db_name,charset='utf8' 
+            host=db_host, user=db_user, password=db_password, database=db_name
+        ) as mydb:
+            mycursor = mydb.cursor()
+            mycursor.execute(sql, valores)
+            mydb.commit()
+            return jsonify({'mensagem': 'Usuário atualizado com sucesso'}), 200
+    except mysql.connector.Error as error:
+        return jsonify({'error': str(error)}), 500
+
+
+
+@app.route('/usuarios', methods=['GET'])
+def listar_usuarios():
+    try:
+        # Conectar ao banco de dados
+        with mysql.connector.connect(
+            host=db_host, user=db_user, password=db_password, database=db_name
         ) as mydb:
             mycursor = mydb.cursor()
 
-            # Print the constructed SQL query for debugging
-            sql = """
-            UPDATE usuarios
-            SET
-                nome = CASE WHEN %s IS NOT NULL THEN %s ELSE nome END,
-                email = CASE WHEN %s IS NOT NULL THEN %s ELSE email END,
-                idade = CASE WHEN %s IS NOT NULL THEN %s ELSE idade END,
-                genero = CASE WHEN %s IS NOT NULL THEN %s ELSE genero END,
-                mensagem = CASE WHEN %s IS NOT NULL THEN %s ELSE mensagem END
-            WHERE id = %s
-            """
-            params = (nome, nome, email, email, idade, idade, genero, genero, mensagem, id)
-            mycursor.execute(sql, params)
-            mydb.commit()
+            # Executar a consulta SQL para selecionar todos os usuários
+            sql = "SELECT * FROM usuarios"
+            mycursor.execute(sql)
 
-        return redirect(url_for('sucesso'))
+            # Obter os resultados da consulta
+            resultados = mycursor.fetchall()
 
+            # Formatar os resultados em um JSON
+            usuarios = []
+            for usuario in resultados:
+                usuarios.append({'id': usuario[0], 'nome': usuario[1], 'email': usuario[2], 'idade': usuario[3]})
+
+            return jsonify({'usuarios': usuarios}), 200
     except mysql.connector.Error as error:
-        print(f"Failed to insert record: {error}")
-        return "Ocorreu um erro ao inserir os dados.", 500
+        return jsonify({'error': str(error)}), 500
 
+
+
+@app.route('/get_usuario/<int:usuario_id>', methods=['GET'])
+def get_usuario(usuario_id):
+
+    try:
+        # Conectar ao banco de dados
+        with mysql.connector.connect(
+            host=db_host, user=db_user, password=db_password, database=db_name
+        ) as mydb:
+            mycursor = mydb.cursor()
+
+            # Executar a consulta SQL para selecionar todos os usuários
+            sql = "SELECT * FROM usuarios where id=%s "
+            valores = (usuario_id,)
+
+            mycursor.execute(sql,valores)
+
+            # Obter os resultados da consulta
+            resultados = mycursor.fetchall()
+
+            # Formatar os resultados em um JSON
+            usuarios = []
+            for usuario in resultados:
+                usuarios.append({'id': usuario[0], 'nome': usuario[1], 'email': usuario[2], 'idade': usuario[3]})
+
+            return jsonify({'usuario': usuarios[0]}), 200
+    except mysql.connector.Error as error:
+        return jsonify({'error': str(error)}), 500
+
+
+@app.route('/get_nome_usuarios', methods=['GET'])
+def get_nome_usuarios():
+    nome = request.args.get('nome')
+
+    if nome:
+        # Construir a consulta SQL com o parâmetro de pesquisa
+        sql = "SELECT * FROM usuarios WHERE nome LIKE %s"
+        valores = ('%' + nome + '%',)
+        try:
+            with mysql.connector.connect(
+                host=db_host, user=db_user, password=db_password, database=db_name
+            ) as mydb:
+                mycursor = mydb.cursor()
+                mycursor.execute(sql, valores)
+                resultados = mycursor.fetchall()
+
+                # Formatar os resultados em um JSON
+                usuarios = []
+                for usuario in resultados:
+                    usuarios.append({'id': usuario[0], 'nome': usuario[1], 'email': usuario[2], 'idade': usuario[3]})
+
+                return jsonify({'usuarios': usuarios}), 200
+        except mysql.connector.Error as error:
+            return jsonify({'error': str(error)}), 500
+    else:
+        return jsonify({'mensagem': 'O parâmetro "nome" é obrigatório'}), 400
 
 # Rota para página de sucesso
 @app.route('/sucesso')
