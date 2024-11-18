@@ -9,8 +9,12 @@ db_user = 'root'
 db_password = ''
 db_name = 'formulario_db'
 
+@app.route('/', methods=['GET'])
+def inicial():
+    return render_template('/index.html')
+
 @app.route('/usuario', methods=['POST'])
-def submit_formulario():
+def usuario():
     # Capture form data with proper validation
     nome = request.form['nome']  # ... validate and handle errors
     email = request.form['email']  # ... validate and handle errors
@@ -153,10 +157,36 @@ def get_nome_usuarios():
     else:
         return jsonify({'mensagem': 'O parâmetro "nome" é obrigatório'}), 400
 
+
+
+@app.route('/del_usuario/<int:usuario_id>', methods=['DELETE'])
+def del_usuario(usuario_id):
+
+    try:
+        # Conectar ao banco de dados
+        with mysql.connector.connect(
+            host=db_host, user=db_user, password=db_password, database=db_name
+        ) as mydb:
+            mycursor = mydb.cursor()
+
+            # Executar a consulta SQL para selecionar todos os usuários
+            sql = "DELETE from usuarios where id=%s "
+            valores = (usuario_id,)
+
+            mycursor.execute(sql,valores)
+
+
+            return jsonify({'usuario deletado com sucesso':  str()}), 200
+    except mysql.connector.Error as error:
+        return jsonify({'error': str(error)}), 500
+
+
 # Rota para página de sucesso
 @app.route('/sucesso')
 def sucesso():
     return 'Dados inseridos com sucesso!'
+
+
 
 if __name__ == '__main__':
     app.run(debug=True)
