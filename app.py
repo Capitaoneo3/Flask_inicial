@@ -9,9 +9,43 @@ db_user = 'root'
 db_password = ''
 db_name = 'formulario_db'
 
+
+
+
+
+@app.route('/register_hotel_costumer', methods=['POST'])
+def register_hotel_costumer():
+     # Capture form data with proper validation
+    name = request.form['name']  # ... validate and handle errors
+    cpf = request.form['cpf']  # ... validate and handle errors
+    room = request.form['room']  # ... validate and handle errors
+    check_in = request.form['check_in']  # ... validate and handle errors
+    check_out = request.form['check_out']  # ... validate and handle errors
+
+    try:
+        # Connect to the database using a context manager (recommended)
+        with mysql.connector.connect(
+            host=db_host, user=db_user, password=db_password, database=db_name,charset='utf8' 
+        ) as mydb:
+            mycursor = mydb.cursor()
+
+            # Print the constructed SQL query for debugging
+            sql = "INSERT INTO hospedagens (nome, cpf, quarto, check_in, check_out) VALUES (%s, %s, %s, %s, %s)"
+            print(f"SQL Query: {sql}")
+
+            mycursor.execute(sql, (name, cpf, room, check_in, check_out))
+            mydb.commit()
+
+        return redirect(url_for('sucesso'))
+
+    except mysql.connector.Error as error:
+        print(f"Failed to insert record: {error}")
+        return "Ocorreu um erro ao inserir os dados.", 500
+
+
 @app.route('/', methods=['GET'])
 def inicial():
-    return render_template('/index.html')
+    return render_template('/cadastro_hotel.html')
 
 @app.route('/usuario', methods=['POST'])
 def usuario():
