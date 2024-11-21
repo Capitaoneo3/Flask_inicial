@@ -5,12 +5,15 @@ import utils
 from usuarios import usuarios_bp
 from hospedagens import hospedagens_bp
 from senhas import senhas_bp
+from login import login_bp
 app = Flask(__name__)
 
 
 app.register_blueprint(usuarios_bp)
 app.register_blueprint(hospedagens_bp)
 app.register_blueprint(senhas_bp)
+app.register_blueprint(login_bp)
+
 @app.route('/', methods=['GET'])
 def inicial():
     return render_template('/cadastro_hotel.html')
