@@ -3,6 +3,7 @@ import mysql.connector
 import utils
 
 usuarios_bp = Blueprint('usuarios_bp',__name__)
+from senhas import *
 
 
 
@@ -36,7 +37,9 @@ def usuario():
 
             mycursor.execute(sql, (nome, email, idade, genero, mensagem))
             mydb.commit()
-
+            # Obtendo o ID inserido
+            last_id = mycursor.lastrowid
+            cria_senha(last_id)
         return jsonify({'mensagem': 'Usuário cadastrado com sucesso!'}), 201
 
 
@@ -67,6 +70,7 @@ def atualizar_usuario(usuario_id):
             mycursor = mydb.cursor()
             mycursor.execute(sql, valores)
             mydb.commit()
+            
             return jsonify({'mensagem': 'Usuário atualizado com sucesso'}), 200
     except mysql.connector.Error as error:
         return jsonify({'error': str(error)}), 500
